@@ -1,12 +1,13 @@
 # steveskeys
 
-Key value storage implementation based on
 http://precog.com/blog-precog-2/entry/do-you-have-what-it-takes-to-be-a-precog-engineer
+
+Key value storage implementation based on the precog challenge problem
 but in clojure instead of scala (and using protocols instead of traits)
 
 ## Usage
 
-
+The storage can be used by creating an instance of StevesKeys.
 
 ## License
 
