@@ -1,4 +1,8 @@
-(ns saolsen.steveskeys)
+(ns saolsen.steveskeys
+  (:require [taoensso.nippy :as nippy])
+  (:import java.util.Arrays
+           com.google.common.primitives.UnsignedBytes))
+
 ;; This is a diskstore modeled after the requirments of the precog challenge
 ;; problem. The problem is to create a disk backed key value store that
 ;; implements some scala traits. This disk backed key value store is instead
@@ -30,8 +34,25 @@
 ;; it doesn't mutate the DiskStore I still named the get method get!. I'm open
 ;; to better suggestions.
 
+;; I'm using nippy for serialization of clojure data structures but I'm not
+;; using it for the ordering for traverse. The ordering is going to be standard
+;; clojure data structure ordering.
+
+(defn bequals
+  "Equality operator for byte arrays"
+  [a b]
+  (java.util.Arrays/equals a b))
+
+(def byte-array-comparator
+  (com.google.common.primitives.UnsignedBytes/lexicographicalComparator))
+
+(defn bcompare
+  "Comparison operator for byte arrays"
+  [a b]
+  (.compare byte-array-comparator a b))
+
 (defprotocol DiskStore
-  "key value store persisted to disk, keys can be "
+  "key value store persisted to disk"
   (put! [this key value] "associates a key to value")
   (get! [this key option] "gets the value associated to the key")
   (flush! [this] "flushes data to disk")
@@ -42,8 +63,8 @@
 ;; api complete.
 (defrecord NotAStore [map]
   DiskStore
-  (put! [_ key value] (swap! map assoc key value))
-  (get! [_ key option] (get @map key))
+  (put! [_ key value] (swap! map assoc (str key) (str value)))
+  (get! [_ key option] (read-string (get @map (str key))))
   (flush! [_] nil)
   (traverse [_ start end] nil))
 
