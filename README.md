@@ -43,6 +43,14 @@ arrays so anything serializable by nippy is supported as a key or
 value.
 * I'm using google guava's byte-array comparator because java doesn't
   have one built in.
+  
+## Other Info
+
+This is really just a toy example and not a useful
+library. Specifically ordering by the binary representation of the
+values isn't something anyone would want. I may in the future continue
+work on this and add some indexes based on the clojure values that
+would be much more likely to benefit someone looking to use this.
 
 ## License
 
