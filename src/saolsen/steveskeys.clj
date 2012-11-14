@@ -1,7 +1,10 @@
 (ns saolsen.steveskeys
+  (:use [taoensso.timbre :only [trace debug info warn error fatal spy]])
   (:require [taoensso.nippy :as nippy])
   (:import java.util.Arrays
            com.google.common.primitives.UnsignedBytes))
+
+;; Helpers for working with byte arrays.
 
 (defn bequals
   "Equality operator for byte arrays"
@@ -17,6 +20,8 @@
   "Comparison operator for byte arrays"
   [a b]
   (.compare byte-array-comparator a b))
+
+;; Protocols
 
 (defprotocol DiskStore
   "key value store persisted to disk"
