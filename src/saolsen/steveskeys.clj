@@ -43,6 +43,8 @@
   [a b]
   (java.util.Arrays/equals a b))
 
+;; If somebody has a pure java implementation of this I'd love to not include
+;; guava.
 (def byte-array-comparator
   (com.google.common.primitives.UnsignedBytes/lexicographicalComparator))
 
