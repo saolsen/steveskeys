@@ -9,20 +9,30 @@
 ;; Manually built tree for testing the search
 (def test-nodes
   {
-   :root (->BPlusTreeNode [[(nippy/freeze-to-bytes 2) :a]
-                           [(nippy/freeze-to-bytes 5) :b]
-                           [(nippy/freeze-to-bytes 9) :c]
-                           [nil :d]])
-   :a (->BPlusTreeLeaf [[(nippy/freeze-to-bytes 1) "one"]
-                        [(nippy/freeze-to-bytes 2) "two"]])
-   :b (->BPlusTreeLeaf [[(nippy/freeze-to-bytes 3) "three"]
-                        [(nippy/freeze-to-bytes 4) "four"]
-                        [(nippy/freeze-to-bytes 5) "five"]])
-   :c (->BPlusTreeLeaf [[(nippy/freeze-to-bytes 6) "six"]
-                        [(nippy/freeze-to-bytes 7) "seven"]
-                        [(nippy/freeze-to-bytes 8) "eight"]
-                        [(nippy/freeze-to-bytes 9) "nine"]])
-   :d (->BPlusTreeLeaf [[(nippy/freeze-to-bytes 10) "ten"]])
+   :root (->BPlusTreeNode [{:key (nippy/freeze-to-bytes 2) :val :a}
+                           {:key (nippy/freeze-to-bytes 5) :val :b}
+                           {:key (nippy/freeze-to-bytes 9) :val :c}
+                           {:key nil :val :d}])
+   :a (->BPlusTreeLeaf [{:key (nippy/freeze-to-bytes 1) :val :one}
+                        {:key (nippy/freeze-to-bytes 2) :val :two}])
+   :b (->BPlusTreeLeaf [{:key (nippy/freeze-to-bytes 3) :val :three}
+                        {:key (nippy/freeze-to-bytes 4) :val :four}
+                        {:key (nippy/freeze-to-bytes 5) :val :five}])
+   :c (->BPlusTreeLeaf [{:key (nippy/freeze-to-bytes 6) :val :six}
+                        {:key (nippy/freeze-to-bytes 7) :val :seven}
+                        {:key (nippy/freeze-to-bytes 8) :val :eight}
+                        {:key (nippy/freeze-to-bytes 9) :val :nine}])
+   :d (->BPlusTreeLeaf [{:key (nippy/freeze-to-bytes 10) :val :ten}])
+   :one "one"
+   :two "two"
+   :three "three"
+   :four "four"
+   :five "five"
+   :six "six"
+   :seven "seven"
+   :eight "eight"
+   :nine "nine"
+   :ten "ten"
    }
   )
 
@@ -36,20 +46,22 @@
 
 (deftest test-btree-search
   (testing "Search for a key in a premade tree")
-  (let [tree (->PersistantBPlusTree (:root test-nodes) #(get test-nodes %) nil)]
+  (let [tree
+        (->PersistantBPlusTree (:root test-nodes) #(get test-nodes %) nil 1)]
     (test-they-all-exist tree)))
 
 ;; Tree that stores the nodes in a clojure map, used to test construction.
 (deftest test-btree-buildin
   (testing "Build and search a tree, inserting in a bunch of random orders")
-  (dotimes [n 50]
+  (dotimes [n 1]
     (let [nextid (ref 0)
           nodes (ref {})
-          tree (->PersistantBPlusTree (:root @nodes)
+          tree (->PersistantBPlusTree nil
                                       #(get @nodes %)
                                       #(dosync
                                         (let [id (alter nextid inc)]
-                                          (alter nodes assoc id %))))]
+                                          (alter nodes assoc id %)))
+                                      12)]
       (apply (partial assoc tree)
              (flatten (shuffle (map #(vector %1 %2) ks vs))))
       (test-they-all-exist tree))))
