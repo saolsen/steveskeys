@@ -53,15 +53,19 @@
 ;; Tree that stores the nodes in a clojure map, used to test construction.
 (deftest test-btree-buildin
   (testing "Build and search a tree, inserting in a bunch of random orders")
-  (dotimes [n 1]
+  (dotimes [n 50]
     (let [nextid (ref 0)
-          nodes (ref {})
-          tree (->PersistantBPlusTree nil
+          nodes (ref {:root (->BPlusTreeLeaf [])})
+          tree (->PersistantBPlusTree (:root @nodes)
                                       #(get @nodes %)
                                       #(dosync
                                         (let [id (alter nextid inc)]
-                                          (alter nodes assoc id %)))
-                                      12)]
-      (apply (partial assoc tree)
-             (flatten (shuffle (map #(vector %1 %2) ks vs))))
-      (test-they-all-exist tree))))
+                                          (alter nodes assoc id %)
+                                          id))
+                                      12)
+          added
+          (apply (partial assoc tree)
+                 (flatten (shuffle
+                           (map
+                            #(vector (nippy/freeze-to-bytes %1) %2) ks vs))))]
+      (test-they-all-exist added))))

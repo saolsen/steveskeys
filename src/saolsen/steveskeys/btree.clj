@@ -99,11 +99,11 @@
   [key root get-node-fn]
     (loop [node root
            path []]
-      (let [next (search-step key node)
-            next-node (get-node-fn (:val next))
-            next-path (conj path {:node node :key (:key next)})]
-        (if (instance? BPlusTreeLeaf next-node)
-          {:path next-path :node next-node}
+      (if (instance? BPlusTreeLeaf node)
+        {:path path :node node}
+        (let [next (search-step key node)
+              next-node (get-node-fn (:val next))
+              next-path (conj path {:node node :key (:key next)})]
           (recur next-node next-path)))))
 
 (deftype PersistantBPlusTree [root get-node-or-record add-node-or-record bf]
@@ -112,20 +112,14 @@
   (assoc [_ key value]
     (let [new-record-id (add-node-or-record value)
           {:keys [path node]} (path-to-leaf key root get-node-or-record)
-;          new-leaf (add-nodes node [{:key key :val new-record-id}])
-;          leafs (if )
           nodes (reverse path)]
-      (debug "new record: " new-record-id)
-      (debug "path: " path)
-      (debug "node: " node)
       (loop [kvps [{:key key :val new-record-id}]
              n {:node node :key key}
              remaining nodes]
-        (debug kvps n remaining)
         (let [new-node (add-kvps (:node n) kvps)
               new-nodes (sort-by greatest-key bcompare
                                  (if (> (count (:kvps new-node)) bf)
-                                   (split new-node)
+                                   (split (first new-node))
                                    [new-node]))
               ids (map add-node-or-record new-nodes)
               new-kvps (if (= (count ids) 1)
@@ -135,10 +129,10 @@
                            :val (first ids)}
                           {:key (:key n)
                            :val (second ids)}])]
-          (if remaining
+          (if (> (count remaining) 0)
             (recur new-kvps (first remaining) (next remaining))
             (if (= (count new-kvps) 1)
-              (PersistantBPlusTree. (:val (first new-kvps))
+              (PersistantBPlusTree. (get-node-or-record (:val (first new-kvps)))
                                     get-node-or-record add-node-or-record bf)
               (recur new-kvps {:node (BPlusTreeNode. []) :key nil} nil)))))))
 
