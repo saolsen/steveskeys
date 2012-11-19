@@ -41,19 +41,20 @@
    isn't in the tree it returns nil"
   [tree]
   (doseq [[k v] (map #(vector %1 %2) ks vs)]
-    (is (= (get tree (nippy/freeze-to-bytes k)) v)))
+    (let [result (get tree (nippy/freeze-to-bytes k))]
+      (is (= result v))))
   (is (= (get tree (nippy/freeze-to-bytes 11)) nil)))
 
-(deftest test-btree-search
-  (testing "Search for a key in a premade tree")
-  (let [tree
-        (->PersistantBPlusTree (:root test-nodes) #(get test-nodes %) nil 1)]
-    (test-they-all-exist tree)))
+;; (deftest test-btree-search
+;;   (testing "Search for a key in a premade tree")
+;;   (let [tree
+;;         (->PersistantBPlusTree (:root test-nodes) #(get test-nodes %) nil 1)]
+;;    (test-they-all-exist tree)))
 
 ;; Tree that stores the nodes in a clojure map, used to test construction.
 (deftest test-btree-buildin
   (testing "Build and search a tree, inserting in a bunch of random orders")
-  (dotimes [n 50]
+  (dotimes [n 1]
     (let [nextid (ref 0)
           nodes (ref {:root (->BPlusTreeLeaf [])})
           tree (->PersistantBPlusTree (:root @nodes)
@@ -62,10 +63,10 @@
                                         (let [id (alter nextid inc)]
                                           (alter nodes assoc id %)
                                           id))
-                                      12)
+                                      4)
+          s (flatten
+             (shuffle (map #(vector (nippy/freeze-to-bytes %1) %2) ks vs)))
+          _ (println s)
           added
-          (apply (partial assoc tree)
-                 (flatten (shuffle
-                           (map
-                            #(vector (nippy/freeze-to-bytes %1) %2) ks vs))))]
+          (apply (partial assoc tree) s)]
       (test-they-all-exist added))))

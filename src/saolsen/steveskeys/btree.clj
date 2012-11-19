@@ -40,20 +40,36 @@
 (defrecord BPlusTreeNode [kvps]
   IReplace
   (add-kvps [_ new-kvps]
-    (let [new-keys (map :key new-kvps)
-          old (filter #(not (or (bequals (:key %) (first new-keys))
-                                (bequals (:key %) (second new-keys))))
-                      kvps)
-          nil-replace? (not (and new-keys))
-          new (sort-by #(:key %) bcompare (into (butlast old) new-kvps))]
-      (if nil-replace?
-        (BPlusTreeNode. new)
-        (BPlusTreeNode. (conj new (last kvps))))))
+    (if (spy (= (count kvps) 0))
+      (BPlusTreeNode. [(first new-kvps) (assoc (second new-kvps) :key nil)])
+      (let [new-keys (map :key new-kvps)
+            nil-replace? (some nil? new-keys)
+            old (filter #(not (or (spy (and nil-replace? (nil? (:key %))))
+                                  (spy (bequals (:key %) (first new-keys)))
+                                  (spy (bequals (:key %) (second new-keys)))))
+                        kvps)
+            new (if nil-replace?
+                  (let [n (first (filter #(nil? (:key %)) new-kvps))
+                        o (first (filter #(not (nil? (:key %))) new-kvps))
+                        to-sort (if o (conj old o) old)
+                        sorted (vec (sort-by #(:key %) bcompare to-sort))]
+                    (conj sorted n))
+                  (let [sorted (vec (sort-by #(:key %) bcompare
+                                             (into (butlast old) new-kvps)))]
+                    (conj sorted (last kvps))))]
+          (BPlusTreeNode. new))))
   (split [_]
     (let [s (count kvps)
-          half (floor (/ s 2))]
-      [(BPlusTreeNode. (take half kvps))
-       (BPlusTreeNode. (drop half kvps))]))
+          half (ceil (/ s 2))
+          first-kvps (take half kvps)
+          second-kvps (drop half kvps)
+          split-key (:key (last first-kvps))]
+      {:nodes
+       [(BPlusTreeNode.
+         (conj (vec (butlast first-kvps))
+               {:key nil :val (:val (last first-kvps))}))
+        (BPlusTreeNode. second-kvps)]
+       :split-key split-key}))
   (greatest-key [_] (or (:key (last kvps))
                         (:key (last (butlast kvps))))))
 
@@ -61,17 +77,18 @@
 (defrecord BPlusTreeLeaf [kvps]
   IReplace
   (add-kvps [_ new-kvps]
-    (let [new-keys (map :key new-kvps)
-          old (filter #(not (or (bequals (:key %) (first new-keys))
-                                (bequals (:key %) (second new-keys))))
-                      kvps)
-          new (sort-by #(:key %) bcompare (into old new-kvps))]
+    (let [{:keys [key val] :as kvp} (first new-kvps)
+          old (filter #(not (bequals (:key %) key)) kvps)
+          new (sort-by #(:key %) bcompare (conj old kvp))]
       (BPlusTreeLeaf. new)))
   (split [_]
-    (let [s (count kvps)
-          half (floor (/ s 2))]
-      [(BPlusTreeLeaf. (take half kvps))
-       (BPlusTreeLeaf. (drop half kvps))]))
+    (let [half (ceil (/ (count kvps) 2))
+          first-kvps (take half kvps)
+          second-kvps (drop half kvps)]
+      {:nodes
+       [(BPlusTreeLeaf. first-kvps)
+        (BPlusTreeLeaf. second-kvps)]
+       :split-key (:key (last first-kvps))}))
   (greatest-key [_] (:key (last kvps))))
 
 (defn- search-step-reducer
@@ -102,7 +119,9 @@
       (if (instance? BPlusTreeLeaf node)
         {:path path :node node}
         (let [next (search-step key node)
+
               next-node (get-node-fn (:val next))
+
               next-path (conj path {:node node :key (:key next)})]
           (recur next-node next-path)))))
 
@@ -112,35 +131,55 @@
   (assoc [_ key value]
     (let [new-record-id (add-node-or-record value)
           {:keys [path node]} (path-to-leaf key root get-node-or-record)
-          nodes (reverse path)]
+          ordered (reverse path)]
       (loop [kvps [{:key key :val new-record-id}]
-             n {:node node :key key}
-             remaining nodes]
-        (let [new-node (add-kvps (:node n) kvps)
-              new-nodes (sort-by greatest-key bcompare
-                                 (if (> (count (:kvps new-node)) bf)
-                                   (split (first new-node))
+             n node
+             k (:key (first ordered))
+             remaining ordered]
+        (let [new-node (add-kvps n kvps)
+              split? (> (count (:kvps new-node)) bf)
+              split-nodes (if split? (split new-node) nil)
+              node-list (sort-by greatest-key bcompare
+                                 (if split?
+                                   (:nodes split-nodes)
                                    [new-node]))
-              ids (map add-node-or-record new-nodes)
-              new-kvps (if (= (count ids) 1)
-                         [{:key (:key n)
-                          :val (first ids)}]
-                         [{:key (greatest-key (first new-nodes))
+              ;; new-nodes (sort-by greatest-key bcompare
+              ;;                    (if (> (count (:kvps new-node)) bf)
+              ;;                        (spy (split new-node))
+              ;;                      {:nodes [new-node]}))
+              ids (map add-node-or-record node-list)
+              new-kvps (if split?
+                         [{:key (:split-key split-nodes)
                            :val (first ids)}
-                          {:key (:key n)
-                           :val (second ids)}])]
-          (if (> (count remaining) 0)
-            (recur new-kvps (first remaining) (next remaining))
-            (if (= (count new-kvps) 1)
-              (PersistantBPlusTree. (get-node-or-record (:val (first new-kvps)))
-                                    get-node-or-record add-node-or-record bf)
-              (recur new-kvps {:node (BPlusTreeNode. []) :key nil} nil)))))))
+                          {:key k
+                            :val (second ids)}]
+                         [{:key k
+                           :val (first ids)}])]
+          (if (spy (> (count remaining) 0))
+            (recur new-kvps
+                   (:node (first remaining))
+                   (:key (second remaining))
+                   (next remaining))
+            (if (spy (= (count new-kvps) 1))
+                (PersistantBPlusTree.
+                 (spy (get-node-or-record (:val (first new-kvps))))
+                 get-node-or-record
+                 add-node-or-record
+                 bf)
+                (let [new-root (BPlusTreeNode. new-kvps)
+                      id (add-node-or-record new-root)]
+                  (PersistantBPlusTree.
+                   (get-node-or-record id)
+                   get-node-or-record
+                   add-node-or-record
+                   bf))))))))
 
   ;; get
   (valAt [_ key]
     ;; Recursively search down the tree for the key, returns it's value.
     (let [search (path-to-leaf key root get-node-or-record)
           node (:node search)]
+      (debug search)
       (get-node-or-record
        (:val (first (filter #(bequals key (:key %)) (:kvps node))))))
 ))
