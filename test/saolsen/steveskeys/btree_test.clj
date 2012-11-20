@@ -52,7 +52,7 @@
   (doseq [[k v] (map #(vector %1 %2) ks vs)]
     (let [result (get tree (nippy/freeze-to-bytes k))]
       (is (= result v))))
-  (is (= (get tree (nippy/freeze-to-bytes 11)) nil)))
+  (is (= (get tree (nippy/freeze-to-bytes 100)) nil)))
 
 (deftest test-btree-search
    (testing "Search for a key in a premade tree")
@@ -63,7 +63,7 @@
 ;; Tree that stores the nodes in a clojure map, used to test construction.
 (deftest test-btree-buildin
   (testing "Build and search a tree, inserting in a bunch of random orders")
-  (dotimes [n 10]
+  (dotimes [n 50]
     (let [nextid (ref 0)
           nodes (ref {:root (->BPlusTreeLeaf [])})
           tree (->PersistantBPlusTree (:root @nodes)
@@ -75,11 +75,12 @@
                                       4)
           s (flatten
              (shuffle (map #(vector (nippy/freeze-to-bytes %1) %2) ks2 vs2)))
-          _ (println s)
           added
           (apply (partial assoc tree) s)
           _ (test-they-all-exist added ks2 vs2)
           ;; test that after tree is made, duplicates can be replaced correctly
-          t (apply (partial assoc added) (map #(vector)))]
-
-)))
+          t (flatten
+             (shuffle (map #(vector (nippy/freeze-to-bytes %1) %2) ks vs)))
+          added-more (apply (partial assoc added) t)
+          ]
+      (test-they-all-exist added-more ks vs))))

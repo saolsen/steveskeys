@@ -1,7 +1,6 @@
 (ns saolsen.steveskeys.btree
   (:use [taoensso.timbre :only [trace debug info warn error fatal spy]]
         [clojure.math.numeric-tower])
-  (:require [taoensso.nippy :as nippy])
   (:import java.util.Arrays
            com.google.common.primitives.UnsignedBytes))
 
@@ -41,35 +40,16 @@
 (defrecord BPlusTreeNode [kvps]
   IReplace
   (add-kvps [_ new-kvps]
-    (info "start: " (count kvps))
-    (info "adding: " (count new-kvps))
     (if (= (count kvps) 0)
       (BPlusTreeNode. [(first new-kvps) (assoc (second new-kvps) :key nil)])
       (let [new-keys (map :key new-kvps)
             nil-replace? (some nil? new-keys)
-            _ (info "nil replace? " nil-replace?)
-            _ (info "old keys ")
-            _ (doseq [kv kvps]
-                (if (not (nil? (:key kv)))
-                  (debug (nippy/thaw-from-bytes (:key kv)))
-                  (debug "nil")))
-            _ (info "new keys ")
-            _ (doseq [kv new-kvps]
-                (if (not (nil? (:key kv)))
-                  (debug (nippy/thaw-from-bytes (:key kv)))
-                  (debug "nil")))
             old (filter #(not (or (and nil-replace? (nil? (:key %)))
                                   (bequals (:key %) (first new-keys))
                                   (if (second new-keys)
                                     (bequals (:key %) (second new-keys))
                                     false)))
                         kvps)
-            _ (info "filtered count: " (count old))
-            _ (info "filtered to ")
-            _ (doseq [kv old]
-                (if (not (nil? (:key kv)))
-                  (debug (nippy/thaw-from-bytes (:key kv)))
-                  (debug "nil")))
             new (if nil-replace?
                   (let [n (first (filter #(nil? (:key %)) new-kvps))
                         o (first (filter #(not (nil? (:key %))) new-kvps))
@@ -79,7 +59,6 @@
                   (let [sorted (vec (sort-by #(:key %) bcompare
                                              (into (butlast old) new-kvps)))]
                     (conj sorted (last kvps))))]
-        (debug "got: " (count new))
         (BPlusTreeNode. new))))
   (split [_]
     (let [s (count kvps)
@@ -166,10 +145,6 @@
                                  (if split?
                                    (:nodes split-nodes)
                                    [new-node]))
-              ;; new-nodes (sort-by greatest-key bcompare
-              ;;                    (if (> (count (:kvps new-node)) bf)
-              ;;                        (spy (split new-node))
-              ;;                      {:nodes [new-node]}))
               ids (map add-node-or-record node-list)
               new-kvps (if split?
                          [{:key (:split-key split-nodes)
