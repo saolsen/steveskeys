@@ -1,6 +1,7 @@
 (ns saolsen.steveskeys.btree
   (:use [taoensso.timbre :only [trace debug info warn error fatal spy]]
         [clojure.math.numeric-tower])
+  (:require [taoensso.nippy :as nippy])
   (:import java.util.Arrays
            com.google.common.primitives.UnsignedBytes))
 
@@ -40,14 +41,35 @@
 (defrecord BPlusTreeNode [kvps]
   IReplace
   (add-kvps [_ new-kvps]
-    (if (spy (= (count kvps) 0))
+    (info "start: " (count kvps))
+    (info "adding: " (count new-kvps))
+    (if (= (count kvps) 0)
       (BPlusTreeNode. [(first new-kvps) (assoc (second new-kvps) :key nil)])
       (let [new-keys (map :key new-kvps)
             nil-replace? (some nil? new-keys)
-            old (filter #(not (or (spy (and nil-replace? (nil? (:key %))))
-                                  (spy (bequals (:key %) (first new-keys)))
-                                  (spy (bequals (:key %) (second new-keys)))))
+            _ (info "nil replace? " nil-replace?)
+            _ (info "old keys ")
+            _ (doseq [kv kvps]
+                (if (not (nil? (:key kv)))
+                  (debug (nippy/thaw-from-bytes (:key kv)))
+                  (debug "nil")))
+            _ (info "new keys ")
+            _ (doseq [kv new-kvps]
+                (if (not (nil? (:key kv)))
+                  (debug (nippy/thaw-from-bytes (:key kv)))
+                  (debug "nil")))
+            old (filter #(not (or (and nil-replace? (nil? (:key %)))
+                                  (bequals (:key %) (first new-keys))
+                                  (if (second new-keys)
+                                    (bequals (:key %) (second new-keys))
+                                    false)))
                         kvps)
+            _ (info "filtered count: " (count old))
+            _ (info "filtered to ")
+            _ (doseq [kv old]
+                (if (not (nil? (:key kv)))
+                  (debug (nippy/thaw-from-bytes (:key kv)))
+                  (debug "nil")))
             new (if nil-replace?
                   (let [n (first (filter #(nil? (:key %)) new-kvps))
                         o (first (filter #(not (nil? (:key %))) new-kvps))
@@ -57,7 +79,8 @@
                   (let [sorted (vec (sort-by #(:key %) bcompare
                                              (into (butlast old) new-kvps)))]
                     (conj sorted (last kvps))))]
-          (BPlusTreeNode. new))))
+        (debug "got: " (count new))
+        (BPlusTreeNode. new))))
   (split [_]
     (let [s (count kvps)
           half (ceil (/ s 2))
@@ -155,14 +178,14 @@
                             :val (second ids)}]
                          [{:key k
                            :val (first ids)}])]
-          (if (spy (> (count remaining) 0))
+          (if (> (count remaining) 0)
             (recur new-kvps
                    (:node (first remaining))
                    (:key (second remaining))
                    (next remaining))
-            (if (spy (= (count new-kvps) 1))
+            (if (= (count new-kvps) 1)
                 (PersistantBPlusTree.
-                 (spy (get-node-or-record (:val (first new-kvps))))
+                 (get-node-or-record (:val (first new-kvps)))
                  get-node-or-record
                  add-node-or-record
                  bf)
@@ -179,7 +202,6 @@
     ;; Recursively search down the tree for the key, returns it's value.
     (let [search (path-to-leaf key root get-node-or-record)
           node (:node search)]
-      (debug search)
       (get-node-or-record
        (:val (first (filter #(bequals key (:key %)) (:kvps node))))))
 ))

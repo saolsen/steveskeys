@@ -54,7 +54,7 @@
 ;; Tree that stores the nodes in a clojure map, used to test construction.
 (deftest test-btree-buildin
   (testing "Build and search a tree, inserting in a bunch of random orders")
-  (dotimes [n 1]
+  (dotimes [n 50]
     (let [nextid (ref 0)
           nodes (ref {:root (->BPlusTreeLeaf [])})
           tree (->PersistantBPlusTree (:root @nodes)
