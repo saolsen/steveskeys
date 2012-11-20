@@ -1,4 +1,4 @@
-note: I think I am at 7 hours of work right now.
+note: I think I am at 20 hours of work right now.
 
 # steveskeys
 
