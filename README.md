@@ -9,7 +9,7 @@ but in clojure instead of scala.
 
 ## Requirments
 
-This is a diskstore modeled after the requirments of the precog
+This is a key value store modeled after the requirments of the precog
 challenge problem. The problem is to create a disk backed key value
 store that implements some scala traits. This disk backed key value
 store is instead written in clojure and implements a similar interface
@@ -26,7 +26,7 @@ requirments.
 * flush! must obey the obvious constraint.
 * If the program is forcibly terminated at any point during writing to a disk
   store, then retrieving the disk store may not fail and must preserve all
-  all information prior to the most recent call to flush().
+  information prior to the most recent call to flush().
 * Assume the number of unique values (and the number of keys) is too
   great to fit in memory.
 
@@ -41,18 +41,10 @@ Ways this differs from a scala requirments.
 ## Implementation Details
 
 * I'm using nippy for serialization of clojure data structures to byte
-arrays so anything serializable by nippy is supported as a key or
-value.
+  arrays so anything serializable by nippy is supported as a key or
+  value.
 * I'm using google guava's byte-array comparator because java doesn't
   have one built in.
-  
-## Other Info
-
-This is really just a toy example and not a useful
-library. Specifically ordering by the binary representation of the
-values isn't something anyone would want. I may in the future continue
-work on this and add some indexes based on the clojure values that
-would be much more likely to benefit someone looking to use this.
 
 ## License
 
