@@ -127,6 +127,54 @@
               next-path (conj path {:node node :key (:key next)})]
           (recur next-node next-path)))))
 
+(defn node-reducer
+  [start end {:keys [result lastkey]} {:keys [key val] :as kvp}]
+  (if (and (>= (bcompare key start) 0)
+           (or (nil? lastkey) (< (bcompare lastkey end) 0)))
+    {:result (conj result kvp) :lastkey key}
+    {:result result :lastkey key}))
+
+(defn get-nodes
+  [get-node node start end]
+  (if (instance? BPlusTreeLeaf node)
+    node
+    (let [gk (greatest-key node)
+          reducer (partial node-reducer start end)
+          nodes (reduce
+                 reducer
+                 {:result [] :lastkey nil}
+                 (butlast (:kvps node)))]
+      ;; (debug "choices" (count (:kvps node)))
+      (map #(get-node (:val %))
+           (if (> (bcompare end gk) 0)
+             (conj (:result nodes) (last (:kvps node)))
+             (:result nodes))))))
+
+(defn expand-to-leaves
+  [get-node root start end]
+  (loop [nodes [root]]
+    ;; (debug "nodes")
+    ;; (doseq [n nodes]
+    ;;   (debug ":" n))
+    (if (some #(instance? BPlusTreeNode %) nodes)
+      (let [step (map #(get-nodes get-node % start end) nodes)]
+        ;; (debug "RECUR")
+        ;; (debug "nodes " nodes)
+        ;; (doseq [x nodes]
+        ;;   (debug ":" x))
+        ;; (debug "step " step)
+        ;; (doseq [x step]
+        ;;   (doseq [a x]
+        ;;     (debug ":" a)))
+        ;; (debug "step results")
+        (recur (flatten step)))
+      nodes)))
+
+(defprotocol ITraversable
+  "support for pulling a range of key/values in order of the keys"
+  (traverse [this start end]
+    "returns a lazy sequence of key/value pairs from start to end"))
+
 (deftype PersistantBPlusTree [root get-node-or-record add-node-or-record bf]
   clojure.lang.Associative
   ;; assoc
@@ -178,5 +226,18 @@
     (let [search (path-to-leaf key root get-node-or-record)
           node (:node search)]
       (get-node-or-record
-       (:val (first (filter #(bequals key (:key %)) (:kvps node))))))
-))
+       (:val (first (filter #(bequals key (:key %)) (:kvps node)))))))
+
+  ITraversable
+  ;; traverse
+  (traverse [_ start end]
+    (let [leaves (expand-to-leaves get-node-or-record root start end)
+          result (atom [])]
+      (println "leaves" (count leaves))
+      (doseq [l leaves]
+        (doseq [{:keys [key val]} (:kvps l)]
+          (when (and (>= (bcompare key start) 0)
+                     (<= (bcompare key end) 0))
+            (swap! result conj {:key key :val (get-node-or-record val)}))))
+      @result))
+)
