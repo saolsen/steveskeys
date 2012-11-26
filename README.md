@@ -1,5 +1,3 @@
-note: I think I am at 20 hours of work right now.
-
 # steveskeys
 
 http://precog.com/blog-precog-2/entry/do-you-have-what-it-takes-to-be-a-precog-engineer

@@ -144,7 +144,6 @@
                  reducer
                  {:result [] :lastkey nil}
                  (butlast (:kvps node)))]
-      ;; (debug "choices" (count (:kvps node)))
       (map #(get-node (:val %))
            (if (> (bcompare end gk) 0)
              (conj (:result nodes) (last (:kvps node)))
@@ -153,20 +152,8 @@
 (defn expand-to-leaves
   [get-node root start end]
   (loop [nodes [root]]
-    ;; (debug "nodes")
-    ;; (doseq [n nodes]
-    ;;   (debug ":" n))
     (if (some #(instance? BPlusTreeNode %) nodes)
       (let [step (map #(get-nodes get-node % start end) nodes)]
-        ;; (debug "RECUR")
-        ;; (debug "nodes " nodes)
-        ;; (doseq [x nodes]
-        ;;   (debug ":" x))
-        ;; (debug "step " step)
-        ;; (doseq [x step]
-        ;;   (doseq [a x]
-        ;;     (debug ":" a)))
-        ;; (debug "step results")
         (recur (flatten step)))
       nodes)))
 
@@ -233,7 +220,6 @@
   (traverse [_ start end]
     (let [leaves (expand-to-leaves get-node-or-record root start end)
           result (atom [])]
-      (println "leaves" (count leaves))
       (doseq [l leaves]
         (doseq [{:keys [key val]} (:kvps l)]
           (when (and (>= (bcompare key start) 0)

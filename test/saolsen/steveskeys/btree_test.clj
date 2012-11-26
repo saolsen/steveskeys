@@ -69,12 +69,6 @@
           start (nippy/freeze-to-bytes (nth ks n))
           end (nippy/freeze-to-bytes (nth ks m))
           traversal (traverse tree start end)
-          - (println "start" (nth ks n))
-          _ (println "end" (nth ks m))
-          _ (println "want" (count kvps))
-          _ (println "got" (count traversal))
-          _ (doseq [a traversal]
-              (println ":" (nippy/thaw-from-bytes (:key a)) " - " (:val a)))
           checks (map #(and
                         (bequals (:key %1) (nippy/freeze-to-bytes (:key %2)))
                         (= (:val %1) (:val %2))) traversal kvps)]
