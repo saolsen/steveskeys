@@ -2,8 +2,6 @@
   (:use [taoensso.timbre :only [trace debug info warn error fatal spy]])
   (:require [taoensso.nippy :as nippy]))
 
-;; Protocol
-
 ;; The keys are stored in a btree to support the traverse function. I'm thinking
 ;; of also storing the values in a btree to conform to the restraint that each
 ;; unique value can only be stored once on disk.
@@ -16,9 +14,14 @@
   (traverse [this start end]
     "returns a range of values from the start to end key"))
 
+;; Stores both the keys and vals in a disk backed btree?
 (defrecord DiskStore [keys vals]
   IDiskStore
   (put! [_ key value] ;add value, add key
     ))
+
+(defn get-store
+  [filename]
+  (DiskStore. nil nil))
 
 (defn -main [& args] (println "Hello World"))

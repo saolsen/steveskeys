@@ -121,9 +121,7 @@
       (if (instance? BPlusTreeLeaf node)
         {:path path :node node}
         (let [next (search-step key node)
-
               next-node (get-node-fn (:val next))
-
               next-path (conj path {:node node :key (:key next)})]
           (recur next-node next-path)))))
 
