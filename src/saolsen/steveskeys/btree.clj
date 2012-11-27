@@ -60,6 +60,7 @@
                                              (into (butlast old) new-kvps)))]
                     (conj sorted (last kvps))))]
         (BPlusTreeNode. new))))
+
   (split [_]
     (let [s (count kvps)
           half (ceil (/ s 2))
@@ -83,6 +84,7 @@
           old (filter #(not (bequals (:key %) key)) kvps)
           new (sort-by #(:key %) bcompare (conj old kvp))]
       (BPlusTreeLeaf. new)))
+
   (split [_]
     (let [half (ceil (/ (count kvps) 2))
           first-kvps (take half kvps)
