@@ -13,7 +13,7 @@
   (flush! [this] "flushes data to disk")
   (traverse [this start end]
     "returns a range of values from the start to end key"))
-o
+
 ;; Stores both the keys and vals in a disk backed btree?
 (defrecord DiskStore [keys vals]
   IDiskStore
