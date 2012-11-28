@@ -33,7 +33,8 @@
   "protocol for nodes to change correctly"
   (add-kvps [node new-kvps] "adds or replaces one or more key value pairs")
   (split [node] "splits the node in two")
-  (greatest-key [node] "greatest key"))
+  (greatest-key [node] "greatest key")
+  (serialize [node] "creates a map that can be serialized with nippy"))
 
 ;; Each node has a list of key value pairs.
 ;; {:kvps [{:key key1 :val node-id1} {:key key2 :val node-id2}] }
@@ -73,8 +74,11 @@
                {:key nil :val (:val (last first-kvps))}))
         (BPlusTreeNode. second-kvps)]
        :split-key split-key}))
+
   (greatest-key [_] (or (:key (last kvps))
-                        (:key (last (butlast kvps))))))
+                        (:key (last (butlast kvps)))))
+
+  (serialize [_] {:kvps kvps :type :node}))
 
 ;; {:kvps [[key1 val1] [key2 val2]] }
 (defrecord BPlusTreeLeaf [kvps]
@@ -93,7 +97,21 @@
        [(BPlusTreeLeaf. first-kvps)
         (BPlusTreeLeaf. second-kvps)]
        :split-key (:key (last first-kvps))}))
-  (greatest-key [_] (:key (last kvps))))
+
+  (greatest-key [_] (:key (last kvps)))
+
+  (serialize [_] {:kvps kvps :type :leaf}))
+
+(defn deserialize
+  "When things are serialized with nippy we use the to-freezable method
+   on the leaf or node. This method is the reverse of that and turns what
+   is thaw'd back into a node or leaf."
+  [node]
+  (let [type (:type node)]
+    (cond
+     (= type :node) (BPlusTreeNode. (:kvps node))
+     (= type :leaf) (BPlusTreeLeaf. (:kvps node))
+     :else (throw (Error. "Not a tree node type")))))
 
 (defn- search-step-reducer
   "reduce function over the key value pairs"
