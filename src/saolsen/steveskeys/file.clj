@@ -107,6 +107,7 @@
             (:root head2))
           ;; database isn't initialized, write nil heads
           (let [n (nippy/freeze-to-bytes {:root (long 0)})]
+            (assert (= (count n) 23))
             (.seek raf 0)
             (.write raf n)
             (.write raf n)

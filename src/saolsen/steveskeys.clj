@@ -1,6 +1,7 @@
 (ns saolsen.steveskeys
-  (:use [taoensso.timbre :only [trace debug info warn error fatal spy]])
-  (:require [taoensso.nippy :as nippy]))
+  (:require [saolsen.steveskeys.file :as file]
+            [saolsen.steveskeys.btree :as btree]))
+
 
 ;; The keys are stored in a btree to support the traverse function. I'm thinking
 ;; of also storing the values in a btree to conform to the restraint that each
@@ -14,14 +15,31 @@
   (traverse [this start end]
     "returns a range of values from the start to end key"))
 
-;; Stores both the keys and vals in a disk backed btree?
-(defrecord DiskStore [keys vals]
+;; TODO: store the values in a seperate btree to eliminate duplicates
+(defrecord DiskStore [fs tree]
   IDiskStore
-  (put! [_ key value] ;add value, add key
-    ))
+  (put! [_ key value]
+    (swap! tree assoc key value))
+
+  (get! [_ key option]
+    (get @tree key))
+
+  (flush! [_]
+    (file/commit fs nil)) ;; NEED TO KNOW ROOT POINTER!
+
+  (traverse [_ start end]
+    (btree/traverse @tree start end)))
 
 (defn get-store
   [filename]
-  (DiskStore. nil nil))
-
-(defn -main [& args] (println "Hello World"))
+  (let [file-store (file/file-manager filename)
+        root-loc (file/initialize file-store)
+        root (if (not= 0 root-loc)
+               (file/read-node file-store root-loc)
+               (btree/->BPlusTreeLeaf []))
+        tree (btree/->PersistantBPlusTree
+              root
+              (partial file/read-node file-store)
+              (partial file/write-node file-store)
+              32)]
+    (DiskStore. file-store (atom tree))))

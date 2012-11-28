@@ -79,7 +79,8 @@
 (deftest test-btree-search
    (testing "Search for a key in a premade tree")
    (let [tree
-         (->PersistantBPlusTree (:root test-nodes) #(get test-nodes %) nil 1)]
+         (->PersistantBPlusTree (:root test-nodes) :root
+                                #(get test-nodes %) nil 1)]
     (test-they-all-exist tree ks vs)))
 
 ;; Tree that stores the nodes in a clojure map, used to test construction.
@@ -89,6 +90,7 @@
     (let [nextid (ref 0)
           nodes (ref {:root (->BPlusTreeLeaf [])})
           tree (->PersistantBPlusTree (:root @nodes)
+                                      :root
                                       #(get @nodes %)
                                       #(dosync
                                         (let [id (alter nextid inc)]

@@ -162,7 +162,8 @@
   (traverse [this start end]
     "returns a lazy sequence of key/value pairs from start to end"))
 
-(deftype PersistantBPlusTree [root get-node-or-record add-node-or-record bf]
+(deftype PersistantBPlusTree
+    [root root-ptr get-node-or-record add-node-or-record bf]
   clojure.lang.Associative
   ;; assoc
   (assoc [_ key value]
@@ -196,6 +197,7 @@
             (if (= (count new-kvps) 1)
                 (PersistantBPlusTree.
                  (get-node-or-record (:val (first new-kvps)))
+                 (:val (first new-kvps))
                  get-node-or-record
                  add-node-or-record
                  bf)
@@ -203,6 +205,7 @@
                       id (add-node-or-record new-root)]
                   (PersistantBPlusTree.
                    (get-node-or-record id)
+                   id
                    get-node-or-record
                    add-node-or-record
                    bf))))))))
