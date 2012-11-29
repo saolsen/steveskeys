@@ -53,6 +53,6 @@ Ways this differs from a scala requirments.
 
 ## License
 
-Copyright © 2012 FIXME
+Copyright © 2012 Stephen Olsen
 
 Distributed under the Eclipse Public License, the same as Clojure.
