@@ -1,3 +1,10 @@
+**Left TODO**:
+
+* Store values in a btree as well so there are no duplicates.
+* Have a seperate file accessor for writing nodes so they aren't
+  blocked by or slowed down by reading nodes.
+  
+
 # steveskeys
 
 http://precog.com/blog-precog-2/entry/do-you-have-what-it-takes-to-be-a-precog-engineer
