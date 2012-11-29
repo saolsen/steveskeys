@@ -180,13 +180,17 @@
   (traverse [this start end]
     "returns a lazy sequence of key/value pairs from start to end"))
 
+(defprotocol IGetRootLoc
+  "returns the root location"
+  (get-root-loc [this] "returns the location of the root node"))
+
 (deftype PersistantBPlusTree
-    [root root-ptr get-node-or-record add-node-or-record bf]
+    [root root-ptr get-node add-node get-val add-val bf]
   clojure.lang.Associative
   ;; assoc
   (assoc [_ key value]
-    (let [new-record-id (add-node-or-record value)
-          {:keys [path node]} (path-to-leaf key root get-node-or-record)
+    (let [new-record-id (add-val value)
+          {:keys [path node]} (path-to-leaf key root get-node)
           ordered (reverse path)]
       (loop [kvps [{:key key :val new-record-id}]
              n node
@@ -199,7 +203,7 @@
                                  (if split?
                                    (:nodes split-nodes)
                                    [new-node]))
-              ids (map add-node-or-record node-list)
+              ids (map add-node node-list)
               new-kvps (if split?
                          [{:key (:split-key split-nodes)
                            :val (first ids)}
@@ -214,37 +218,44 @@
                    (next remaining))
             (if (= (count new-kvps) 1)
                 (PersistantBPlusTree.
-                 (get-node-or-record (:val (first new-kvps)))
+                 (get-node (:val (first new-kvps)))
                  (:val (first new-kvps))
-                 get-node-or-record
-                 add-node-or-record
+                 get-node
+                 add-node
+                 get-val
+                 add-val
                  bf)
                 (let [new-root (BPlusTreeNode. new-kvps)
-                      id (add-node-or-record new-root)]
+                      id (add-node new-root)]
                   (PersistantBPlusTree.
-                   (get-node-or-record id)
+                   (get-node id)
                    id
-                   get-node-or-record
-                   add-node-or-record
+                   get-node
+                   add-node
+                   get-val
+                   add-val
                    bf))))))))
 
   ;; get
   (valAt [_ key]
     ;; Recursively search down the tree for the key, returns it's value.
-    (let [search (path-to-leaf key root get-node-or-record)
+    (let [search (path-to-leaf key root get-node)
           node (:node search)]
-      (get-node-or-record
+      (get-val
        (:val (first (filter #(bequals key (:key %)) (:kvps node)))))))
 
   ITraversable
   ;; traverse
   (traverse [_ start end]
-    (let [leaves (expand-to-leaves get-node-or-record root start end)
+    (let [leaves (expand-to-leaves get-node root start end)
           result (atom [])]
       (doseq [l leaves]
         (doseq [{:keys [key val]} (:kvps l)]
           (when (and (>= (bcompare key start) 0)
                      (<= (bcompare key end) 0))
-            (swap! result conj {:key key :val (get-node-or-record val)}))))
+            (swap! result conj {:key key :val (get-val val)}))))
       @result))
+
+  IGetRootLoc
+  (get-root-loc [_] root-ptr)
 )

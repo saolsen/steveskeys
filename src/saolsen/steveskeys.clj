@@ -1,5 +1,6 @@
 (ns saolsen.steveskeys
-  (:require [saolsen.steveskeys.file :as file]
+  (:require [taoensso.nippy :as n]
+            [saolsen.steveskeys.file :as file]
             [saolsen.steveskeys.btree :as btree]))
 
 
@@ -19,26 +20,41 @@
 (defrecord DiskStore [fs tree]
   IDiskStore
   (put! [_ key value]
-    (swap! tree assoc key value))
+    (swap! tree assoc (n/freeze-to-bytes key) (n/freeze-to-bytes value))
+    true)
 
   (get! [_ key option]
-    (get @tree key))
+    (n/thaw-from-bytes (get @tree (n/freeze-to-bytes key))))
 
   (flush! [_]
-    (file/commit fs nil)) ;; NEED TO KNOW ROOT POINTER!
+    (file/commit fs (btree/get-root-loc @tree))
+    true)
 
   (traverse [_ start end]
-    (btree/traverse @tree start end)))
+    (let [kvps (btree/traverse @tree
+                               (n/freeze-to-bytes start)
+                               (n/freeze-to-bytes end))
+          get-kv (map #(vector (:key %) (:val %)) kvps)
+          to-vals (map #(map n/thaw-from-bytes %) get-kv)]
+      (reduce #(conj %1 (first %2) (second %2)) [] to-vals)))
+)
 
 (defn get-store
   [filename]
   (let [file-store (file/file-manager filename)
         root-loc (file/initialize file-store)
         root (if (not= 0 root-loc)
-               (file/read-node file-store root-loc)
+               (btree/deserialize (file/read-node file-store root-loc))
                (btree/->BPlusTreeLeaf []))
         tree (btree/->PersistantBPlusTree
               root
+              root-loc
+              #(->> %
+                    (file/read-node file-store)
+                    (btree/deserialize))
+              #(->> %
+                    (btree/serialize)
+                    (file/write-node file-store))
               (partial file/read-node file-store)
               (partial file/write-node file-store)
               32)]
