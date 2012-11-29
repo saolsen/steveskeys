@@ -4,14 +4,14 @@
 ;; File access for steveskeys
 ;; The top of the file is a 2 part header. The header tells you the index of
 ;; the root node of the tree, with 0 meaning that there is no root node.
-;; 
+;;
 ;; {:root pointer}
 ;;
 ;; This when serialized by nippy takes up 23 bytes so the first 46 bytes of the
 ;; file are the two headers. The second header is written to first. If the
 ;; program fails during this write the first header will still contain the last
-;; flush's root. Then the first header is written to, if the program fails during
-;; this write the second header will still be correct.
+;; flush's root. Then the first header is written to, if the program fails
+;; during this write the second header will still be correct.
 ;; If the program ever crashes on a read or write of a node the headers will
 ;; still let us recover the root node at time of the last flush so only data
 ;; since that flush can be lost (which is our guarantee).
