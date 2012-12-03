@@ -1,4 +1,8 @@
 
+* TODO In btree get rid of add-val, handle that externally?
+* TODO In fs I need to change the byte sizes to handle saving two root nodes.
+
+
 * DONE Save root node pointer in the tree so we can use it in the commit
 * DONE Implement some methods to serialize tree leafs and nodes
 * TODO Store the values in a seperate btree so there are no duplicates

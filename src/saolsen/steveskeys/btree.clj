@@ -185,11 +185,11 @@
   (get-root-loc [this] "returns the location of the root node"))
 
 (deftype PersistantBPlusTree
-    [root root-ptr get-node add-node get-val add-val bf]
+    [root root-ptr get-node add-node bf]
   clojure.lang.Associative
   ;; assoc
   (assoc [_ key value]
-    (let [new-record-id (add-val value)
+    (let [new-record-id value
           {:keys [path node]} (path-to-leaf key root get-node)
           ordered (reverse path)]
       (loop [kvps [{:key key :val new-record-id}]
@@ -222,8 +222,6 @@
                  (:val (first new-kvps))
                  get-node
                  add-node
-                 get-val
-                 add-val
                  bf)
                 (let [new-root (BPlusTreeNode. new-kvps)
                       id (add-node new-root)]
@@ -232,8 +230,6 @@
                    id
                    get-node
                    add-node
-                   get-val
-                   add-val
                    bf))))))))
 
   ;; get
@@ -241,8 +237,7 @@
     ;; Recursively search down the tree for the key, returns it's value.
     (let [search (path-to-leaf key root get-node)
           node (:node search)]
-      (get-val
-       (:val (first (filter #(bequals key (:key %)) (:kvps node)))))))
+       (:val (first (filter #(bequals key (:key %)) (:kvps node))))))
 
   ITraversable
   ;; traverse
@@ -253,7 +248,7 @@
         (doseq [{:keys [key val]} (:kvps l)]
           (when (and (>= (bcompare key start) 0)
                      (<= (bcompare key end) 0))
-            (swap! result conj {:key key :val (get-val val)}))))
+            (swap! result conj {:key key :val val}))))
       @result))
 
   IGetRootLoc
