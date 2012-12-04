@@ -1,6 +1,5 @@
 (ns saolsen.steveskeys.btree
-  (:use [taoensso.timbre :only [trace debug info warn error fatal spy]]
-        [clojure.math.numeric-tower])
+  (:use [clojure.math.numeric-tower])
   (:import java.util.Arrays
            com.google.common.primitives.UnsignedBytes))
 
@@ -29,7 +28,7 @@
 ;; - get-node is a referentially transparent function.
 ;; - (= node (get-node (add-node node)))
 
-(defprotocol IReplace
+(defprotocol PReplace
   "protocol for nodes to change correctly"
   (add-kvps [node new-kvps] "adds or replaces one or more key value pairs")
   (split [node] "splits the node in two")
@@ -39,7 +38,7 @@
 ;; Each node has a list of key value pairs.
 ;; {:kvps [{:key key1 :val node-id1} {:key key2 :val node-id2}] }
 (defrecord BPlusTreeNode [kvps]
-  IReplace
+  PReplace
   (add-kvps [_ new-kvps]
     (if (= (count kvps) 0)
       (BPlusTreeNode. [(first new-kvps) (assoc (second new-kvps) :key nil)])
@@ -82,7 +81,7 @@
 
 ;; {:kvps [[key1 val1] [key2 val2]] }
 (defrecord BPlusTreeLeaf [kvps]
-  IReplace
+  PReplace
   (add-kvps [_ new-kvps]
     (let [{:keys [key val] :as kvp} (first new-kvps)
           old (filter #(not (bequals (:key %) key)) kvps)
@@ -175,12 +174,12 @@
         (recur (flatten step)))
       nodes)))
 
-(defprotocol ITraversable
+(defprotocol PTraversable
   "support for pulling a range of key/values in order of the keys"
   (traverse [this start end]
     "returns a lazy sequence of key/value pairs from start to end"))
 
-(defprotocol IGetRootLoc
+(defprotocol PGetRootLoc
   "returns the root location"
   (get-root-loc [this] "returns the location of the root node"))
 
@@ -239,7 +238,7 @@
           node (:node search)]
        (:val (first (filter #(bequals key (:key %)) (:kvps node))))))
 
-  ITraversable
+  PTraversable
   ;; traverse
   (traverse [_ start end]
     (let [leaves (expand-to-leaves get-node root start end)
@@ -251,6 +250,6 @@
             (swap! result conj {:key key :val val}))))
       @result))
 
-  IGetRootLoc
+  PGetRootLoc
   (get-root-loc [_] root-ptr)
 )

@@ -3,10 +3,6 @@
             [saolsen.steveskeys.file :as file]
             [saolsen.steveskeys.btree :as btree]))
 
-;; The keys are stored in a btree to support the traverse function. I'm thinking
-;; of also storing the values in a btree to conform to the restraint that each
-;; unique value can only be stored once on disk.
-
 (defprotocol PDiskStore
   "key value store persisted to disk"
   (put! [this key value] "associates a key to value")
@@ -15,7 +11,6 @@
   (traverse [this start end]
     "returns a range of values from the start to end key"))
 
-;; TODO: store the values in a seperate btree to eliminate duplicates
 (defrecord DiskStore [fs keys vals]
   PDiskStore
   (put! [_ key value]
@@ -47,6 +42,19 @@
       (reduce #(conj %1 (first %2) (second %2)) [] to-vals)))
 )
 
+(defn make-tree
+  [file-store root root-loc]
+  (btree/->PersistantBPlusTree
+   root
+   root-loc
+   #(->> %
+         (file/read-node file-store)
+         (btree/deserialize))
+   #(->> %
+         (btree/serialize)
+         (file/write-node file-store))
+   32))
+
 (defn get-store
   [filename]
   (let [file-store (file/file-manager filename)
@@ -60,27 +68,6 @@
                 (vector
                  (btree/->BPlusTreeLeaf [])
                  (btree/->BPlusTreeLeaf [])))
-        keys (btree/->PersistantBPlusTree
-              (first roots)
-              (:keys root-loc)
-              #(->> %
-                    (file/read-node file-store)
-                    (btree/deserialize))
-              #(->> %
-                    (btree/serialize)
-                    (file/write-node file-store))
-              32)
-        vals (btree/->PersistantBPlusTree
-              (second roots)
-              (:vals root-loc)
-              #(->> %
-                    (file/read-node file-store)
-                    (btree/deserialize))
-              #(->> %
-                    (btree/serialize)
-                    (file/write-node file-store))
-              32)]
+        keys (make-tree file-store (first roots) (:keys root-loc))
+        vals (make-tree file-store (second roots) (:vals root-loc))]
     (DiskStore. file-store (atom keys) (atom vals))))
-
-(defn -main [& args]
-  (println "steveskeys!"))

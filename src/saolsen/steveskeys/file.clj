@@ -7,7 +7,7 @@
 ;;
 ;; {:keys pointer :vals pointer}
 ;;
-;; This when serialized by nippy takes up 36 bytes so the first 72 bytes of the
+;; This when serialized by nippy takes up 31 bytes so the first 62 bytes of the
 ;; file are the two headers. The second header is written to first. If the
 ;; program fails during this write the first header will still contain the last
 ;; flush's root. Then the first header is written to, if the program fails
@@ -16,10 +16,7 @@
 ;; still let us recover the root node at time of the last flush so only data
 ;; since that flush can be lost (which is our guarantee).
 
-;; RandomAccessFile is probably not the best choice (at least for the writer)
-;; I plan to split out the writer and the reader.
-
-(defprotocol IFileManager
+(defprotocol PFileManager
   "Manages reading and writing to the database file"
   (read-node [this pointer]
     "returns the node at the pointer")
@@ -58,7 +55,7 @@
       {:head1 head1 :head2 head2})))
 
 (defrecord FileManager [filename reader writer]
-  IFileManager
+  PFileManager
   (read-node [_ pointer]
     (.seek reader pointer)
     (let [b1 (byte-array 7)]
