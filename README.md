@@ -13,7 +13,7 @@ project.clj
 [steveskeys "0.1.0"]
 ```
 
-Creating a store is as simple as calling 
+Example Use
 
 ```clojure
 (use 'saolsen.steveskeys)
