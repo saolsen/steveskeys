@@ -9,7 +9,9 @@
     (put! store "d" "delta")
     (put! store "b" "beta")
     (is (= ["a" "alpha" "b" "beta" "d" "delta"] (traverse store "a" "d")))
+    (put! store "c" "alpha")
     (flush! store))
   (let [store2 (get-store "testdata/teststore")]
-    (is (= ["a" "alpha" "b" "beta" "d" "delta"] (traverse store2 "a" "d"))))
+    (is (= ["a" "alpha" "b" "beta" "c" "alpha" "d" "delta"]
+           (traverse store2 "a" "d"))))
   (.delete (java.io.File. "testdata/teststore")))
