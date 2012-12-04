@@ -15,7 +15,7 @@ project.clj
 
 Creating a store is as simple as calling 
 
-'''clojure
+```clojure
 (use 'saolsen.steveskeys)
 
 ;; create a store with get-store
@@ -25,9 +25,9 @@ Creating a store is as simple as calling
 (put! store "c" {:see ["works" "for" "any" "clojure" "values"]})
 (get! store "b" nil)
 ;; => "baby"
+
 (traverse store "a" "c")
-;; =>
-["a" "apple" "b" "baby" "c" {:see ["you" "can" "use" "any" "clojure" "datatype"]}]
+;; => ["a" "apple" "b" "baby" "c" {:see ["you" "can" "use" "any" "clojure" "datatype"]}]
 
 ;; flush! guarantees data is saved to disk
 (flush! store)
