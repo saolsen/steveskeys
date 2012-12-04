@@ -6,7 +6,38 @@ http://precog.com/blog-precog-2/entry/do-you-have-what-it-takes-to-be-a-precog-e
 
 ## Useage
 
+Steveskeys is available on clojars, simply add it as a dependency in
+project.clj
 
+```clojure
+[steveskeys "0.1.0"]
+```
+
+Creating a store is as simple as calling 
+
+'''clojure
+(use 'saolsen.steveskeys)
+
+;; create a store with get-store
+(def store (get-store "filename"))
+(put! store "a" "apple")
+(put! store "b" "baby")
+(put! store "c" {:see ["works" "for" "any" "clojure" "values"]})
+(get! store "b" nil)
+;; => "baby"
+(traverse store "a" "c")
+;; =>
+["a" "apple" "b" "baby" "c" {:see ["you" "can" "use" "any" "clojure" "datatype"]}]
+
+;; flush! guarantees data is saved to disk
+(flush! store)
+
+;; then, later or in another session if you open a store with the same
+;; filename the data will still be there
+(def store2 (get-store "filename"))
+(get! store2 "a" nil)
+;; => "apple"
+```
 
 ## Requirments
 
