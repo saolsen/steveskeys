@@ -32,8 +32,8 @@
 
 (defn write-header-and-close
   "writes the header and closes the RandomAccessFile"
-  [raf index header]
-  (doto raf
+  [f index header]
+  (doto f
     (.seek index)
     (.write header)
     (.close)))
@@ -46,10 +46,10 @@
 
 (defn read-headers
   "reads the two headers"
-  [raf]
+  [f]
   (let [b1 (byte-array 31)
         b2 (byte-array 31)]
-    (doto raf
+    (doto f
       (.seek 0)
       (.read b1)
       (.read b2))
@@ -57,24 +57,23 @@
           head2 (try-thaw b2)]
       {:head1 head1 :head2 head2})))
 
-;; Seperate and control reading and writing for performance.
-(defrecord FileManager [filename raf]
+(defrecord FileManager [filename reader writer]
   IFileManager
   (read-node [_ pointer]
-    (.seek raf pointer)
+    (.seek reader pointer)
     (let [b1 (byte-array 7)]
-      (.read raf b1)
+      (.read reader b1)
       (let [size (nippy/thaw-from-bytes b1)
             b2 (byte-array size)]
-        (.read raf b2)
+        (.read reader b2)
         (nippy/thaw-from-bytes b2))))
 
   (write-node [_ node]
     (let [frozen (nippy/freeze-to-bytes node)
           len (nippy/freeze-to-bytes (int (count frozen)))
-          tail (.length raf)]
+          tail (.length writer)]
       (assert (= (count len) 7))
-      (doto raf
+      (doto writer
         (.seek tail)
         (.write len)
         (.write frozen))
@@ -84,33 +83,36 @@
     (let [header {:keys (int keys-root) :vals (int vals-root)}
           b (nippy/freeze-to-bytes header)]
       (assert (= (count b) 31))
-      (write-header-and-close raf 31 b)
-      (write-header-and-close (java.io.RandomAccessFile. filename "rw") 0 b)
-      (FileManager. filename (java.io.RandomAccessFile. filename "rw"))))
+      (.close reader)
+      (write-header-and-close writer 31 b)
+      (write-header-and-close (java.io.RandomAccessFile. filename "rws") 0 b)
+      (FileManager. filename
+                    (java.io.RandomAccessFile. filename "rws")
+                    (java.io.RandomAccessFile. filename "rws"))))
 
   (initialize [_]
-    (let [{:keys [head1 head2]} (read-headers raf)]
+    (let [{:keys [head1 head2]} (read-headers reader)]
       (if head1
         (if head2
           ;; return the root node of head1
           head1
           ;; copy head1 to head2, return head1
           (do
-            (.seek raf 31)
-            (.write raf (nippy/freeze-to-bytes head1))
+            (.seek writer 31)
+            (.write writer (nippy/freeze-to-bytes head1))
             head1))
         (if head2
           ;; copy head2 to head1, return head2
           (do
-            (.seek raf 0)
-            (.write raf (nippy/freeze-to-bytes head2))
+            (.seek writer 0)
+            (.write writer (nippy/freeze-to-bytes head2))
             head2)
           ;; database isn't initialized, write nil heads
           (let [n (nippy/freeze-to-bytes {:keys (int 0) :vals (int 0)})]
             (assert (= (count n) 31))
-            (.seek raf 0)
-            (.write raf n)
-            (.write raf n)
+            (.seek writer 0)
+            (.write writer n)
+            (.write writer n)
             {:keys (int 0) :vals (int 0)})))))
 )
 
@@ -119,5 +121,6 @@
   (let [f (java.io.File. filename)]
     (when (not (.exists f))
       (.createNewFile f)))
-  (let [raf (java.io.RandomAccessFile. filename "rw")]
-    (FileManager. filename raf)))
+  (let [reader (java.io.RandomAccessFile. filename "rws")
+        writer (java.io.RandomAccessFile. filename "rws")]
+    (FileManager. filename reader writer)))
