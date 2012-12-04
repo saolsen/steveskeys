@@ -10,16 +10,16 @@
                            {:key (nippy/freeze-to-bytes 5) :val :b}
                            {:key (nippy/freeze-to-bytes 9) :val :c}
                            {:key nil :val :d}])
-   :a (->BPlusTreeLeaf [{:key (nippy/freeze-to-bytes 1) :val :one}
-                        {:key (nippy/freeze-to-bytes 2) :val :two}])
-   :b (->BPlusTreeLeaf [{:key (nippy/freeze-to-bytes 3) :val :three}
-                        {:key (nippy/freeze-to-bytes 4) :val :four}
-                        {:key (nippy/freeze-to-bytes 5) :val :five}])
-   :c (->BPlusTreeLeaf [{:key (nippy/freeze-to-bytes 6) :val :six}
-                        {:key (nippy/freeze-to-bytes 7) :val :seven}
-                        {:key (nippy/freeze-to-bytes 8) :val :eight}
-                        {:key (nippy/freeze-to-bytes 9) :val :nine}])
-   :d (->BPlusTreeLeaf [{:key (nippy/freeze-to-bytes 10) :val :ten}])
+   :a (->BPlusTreeLeaf [{:key (nippy/freeze-to-bytes 1) :val "one"}
+                        {:key (nippy/freeze-to-bytes 2) :val "two"}])
+   :b (->BPlusTreeLeaf [{:key (nippy/freeze-to-bytes 3) :val "three"}
+                        {:key (nippy/freeze-to-bytes 4) :val "four"}
+                        {:key (nippy/freeze-to-bytes 5) :val "five"}])
+   :c (->BPlusTreeLeaf [{:key (nippy/freeze-to-bytes 6) :val "six"}
+                        {:key (nippy/freeze-to-bytes 7) :val "seven"}
+                        {:key (nippy/freeze-to-bytes 8) :val "eight"}
+                        {:key (nippy/freeze-to-bytes 9) :val "nine"}])
+   :d (->BPlusTreeLeaf [{:key (nippy/freeze-to-bytes 10) :val "ten"}])
    :one "one"
    :two "two"
    :three "three"
@@ -81,7 +81,6 @@
    (let [tree
          (->PersistantBPlusTree (:root test-nodes) :root
                                 #(get test-nodes %) nil
-                                #(get test-nodes %) nil
                                 1)]
     (test-they-all-exist tree ks vs)))
 
@@ -93,11 +92,6 @@
           nodes (ref {:root (->BPlusTreeLeaf [])})
           tree (->PersistantBPlusTree (:root @nodes)
                                       :root
-                                      #(get @nodes %)
-                                      #(dosync
-                                        (let [id (alter nextid inc)]
-                                          (alter nodes assoc id %)
-                                          id))
                                       #(get @nodes %)
                                       #(dosync
                                         (let [id (alter nextid inc)]

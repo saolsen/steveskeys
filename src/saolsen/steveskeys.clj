@@ -51,24 +51,36 @@
   [filename]
   (let [file-store (file/file-manager filename)
         root-loc (file/initialize file-store)
-        root (if (not= {:keys (long 0) :vals (long 0)} root-loc)
-
-               (btree/deserialize (file/read-node
-file-store root-loc))
-               (btree/->BPlusTreeLeaf []))
-        tree (btree/->PersistantBPlusTree
-              root
-              root-loc
+        roots (if (not= {:keys (long 0) :vals (long 0)} root-loc)
+                (vector
+                 (btree/deserialize (file/read-node
+                                     file-store (:keys root-loc)))
+                 (btree/deserialize (file/read-node
+                                     file-store (:vals root-loc))))
+                (vector
+                 (btree/->BPlusTreeLeaf [])
+                 (btree/->BPlusTreeLeaf [])))
+        keys (btree/->PersistantBPlusTree
+              (first roots)
+              (:keys root-loc)
               #(->> %
                     (file/read-node file-store)
                     (btree/deserialize))
               #(->> %
                     (btree/serialize)
                     (file/write-node file-store))
-              (partial file/read-node file-store)
-              (partial file/write-node file-store)
+              32)
+        vals (btree/->PersistantBPlusTree
+              (second roots)
+              (:vals root-loc)
+              #(->> %
+                    (file/read-node file-store)
+                    (btree/deserialize))
+              #(->> %
+                    (btree/serialize)
+                    (file/write-node file-store))
               32)]
-    (DiskStore. file-store (atom tree) (atom nil))))
+    (DiskStore. file-store (atom keys) (atom vals))))
 
 (defn -main [& args]
   (println "steveskeys!"))
