@@ -77,6 +77,27 @@ Ways this differs from a scala requirments.
   value.
 * I'm using google guava's byte-array comparator because java doesn't
   have one built in.
+* Both the values and the index are stored in b+trees. The b+tree I have implemented
+  is persistant and immutable. Since the tree nodes are immutable, having a valid root
+  node implies having a valid tree. When something new is added to a tree the
+  nodes from the node it's inserted to up to the root are all expired and new
+  nodes are created. The new root is then swapped into the root atom. Writes
+  do not block or change reads so even if a read were to take a long time and
+  the root changed before it's done the version of the tree the read is operating
+  on is still safe and unchanged. This allows reads and writes to happen without blocking
+  eachother and without any locking. (persistant data structures are awesome)
+* The nodes themselves are serialized and stored in a file. First the length of the serialized
+  node is written to the file (this is an int that serializes to 7 bytes) then the byte data of
+  the node is written. The location in the file is returned (and stored in other nodes as pointers)
+  When a node is read from the file first 7 bytes are read from the location to get the size and then
+  that many bytes are read and deserialized to get the node. The reader and the writer each use a different
+  file object so the random access jumping around of reads does not hinder the high throughput that linear
+  writes to the end of the file has.
+* When flush is called the locations of the root nodes for the two btrees is written to the top of the file twice.
+  It is written once, the writer is flushed to disk, then it is written again just below that and the writer is flushed.
+  This allows us to recover the file if there is a failure on either of those writes. If the program crashes during
+  the first write, the second one is still valid as of the time of the prevous flush. If it crashes during the second write
+  the first one was already done and we can recover from it. This way all data as of the last successful flush is acounted for.
 
 ## License
 
