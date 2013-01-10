@@ -1,4 +1,4 @@
-# steveskeys
+# steveskeys [![Build Status](https://travis-ci.org/saolsen/steveskeys.png?branch=master)](https://travis-ci.org/saolsen/steveskeys)
 
 File backed key value store, based on the precog challenge.
 
