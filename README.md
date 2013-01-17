@@ -27,7 +27,7 @@ Example Use
 ;; => "baby"
 
 (traverse store "a" "c")
-;; => ["a" "apple" "b" "baby" "c" {:see ["you" "can" "use" "any" "clojure" "datatype"]}]
+;; => ["a" "apple" "b" "baby" "c" {:see ["works" "for" "any" "clojure" "values"]}]
 
 ;; flush! guarantees data is saved to disk
 (flush! store)
