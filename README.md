@@ -87,9 +87,9 @@ Ways this differs from a scala requirments.
   on is still safe and unchanged. This allows reads and writes to happen without blocking
   eachother and without any locking. (persistant data structures are awesome)
 * The nodes themselves are serialized and stored in a file. First the length of the serialized
-  node is written to the file (this is an int that serializes to 7 bytes) then the byte data of
+  node is written to the file (this is an int that serializes to 14 bytes) then the byte data of
   the node is written. The location in the file is returned (and stored in other nodes as pointers)
-  When a node is read from the file first 7 bytes are read from the location to get the size and then
+  When a node is read from the file first 14 bytes are read from the location to get the size and then
   that many bytes are read and deserialized to get the node. The reader and the writer each use a different
   file object so the random access jumping around of reads does not hinder the high throughput that linear
   writes to the end of the file has.
