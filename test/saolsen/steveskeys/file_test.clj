@@ -5,14 +5,14 @@
 ;; goodfirst has a root node of 0 as the first header and shit for the second
 (deftest test-recovering
   (testing "Making sure that it can recover from one of the header being bad")
-  (let [bad-buffer (byte-array 31 (map byte (range 10)))
-        fine-header (taoensso.nippy/freeze-to-bytes
+  (let [bad-buffer (byte-array 37 (map byte (range 10)))
+        fine-header (taoensso.nippy/freeze
                      {:keys (int 5) :vals (int 3)})
         f1 (java.io.File. "testdata/goodfirst")
         f2 (java.io.File. "testdata/goodsecond")
         raf1 (java.io.RandomAccessFile. f1 "rw")
         raf2 (java.io.RandomAccessFile. f2 "rw")]
-    (is (= (count fine-header) 31))
+    (is (= (count fine-header) 37))
     (.createNewFile f1)
     (.createNewFile f2)
     (.seek raf1 0)
