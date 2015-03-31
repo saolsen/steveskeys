@@ -14,8 +14,8 @@
 (defrecord DiskStore [fs keys vals]
   PDiskStore
   (put! [_ key value]
-    (let [k (n/freeze-to-bytes key)
-          v (n/freeze-to-bytes value)]
+    (let [k (n/freeze key)
+          v (n/freeze value)]
       (if-let [val (get @vals v)]
         (swap! keys assoc k val)
         (let [new-val (file/write-node fs v)]
@@ -24,10 +24,10 @@
       true))
 
   (get! [_ key option]
-    (let [k (n/freeze-to-bytes key)
+    (let [k (n/freeze key)
           v (get @keys k)
           val (file/read-node fs v)]
-      (n/thaw-from-bytes val)))
+      (n/thaw val)))
 
   (flush! [_]
     (file/commit fs (btree/get-root-loc @keys) (btree/get-root-loc @vals))
@@ -35,10 +35,10 @@
 
   (traverse [_ start end]
     (let [kvps (btree/traverse @keys
-                               (n/freeze-to-bytes start)
-                               (n/freeze-to-bytes end))
+                               (n/freeze start)
+                               (n/freeze end))
           get-kv (map #(vector (:key %) (file/read-node fs (:val %))) kvps)
-          to-vals (map #(map n/thaw-from-bytes %) get-kv)]
+          to-vals (map #(map n/thaw %) get-kv)]
       (reduce #(conj %1 (first %2) (second %2)) [] to-vals)))
 )
 
